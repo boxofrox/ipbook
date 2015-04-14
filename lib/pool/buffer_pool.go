@@ -5,7 +5,9 @@ type BufferPool struct {
 	create func() []byte
 }
 
-func New(size int, createBuffer func() []byte) *BufferPool {
+type BufferAllocator func() []byte
+
+func New(size int, createBuffer BufferAllocator) *BufferPool {
 	return &BufferPool{
 		pool:   make(chan []byte, size),
 		create: createBuffer,
