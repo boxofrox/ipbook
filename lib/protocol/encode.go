@@ -4,7 +4,7 @@ import (
 	"encoding/json"
 )
 
-func encode(message messager) ([]byte, error) {
+func encode(message Messager) ([]byte, error) {
 	return json.Marshal(message)
 }
 
@@ -22,4 +22,3 @@ func (e EncodingError) Error() string {
 
 	return "unknown error"
 }
-

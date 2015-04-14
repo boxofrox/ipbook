@@ -1,8 +1,11 @@
 package registry
 
-import ()
+import (
+	"sync"
+)
 
 type Registry struct {
+	sync.Mutex
 	register map[string]string
 }
 
@@ -13,6 +16,9 @@ func New() *Registry {
 }
 
 func (r *Registry) Contains(name string) bool {
+	r.Lock()
+	defer r.Unlock()
+
 	_, exists := r.register[name]
 	return exists
 }
@@ -21,6 +27,9 @@ func (r *Registry) Put(name, ip string) error {
 	if "" == name {
 		return INVALID_NAME
 	}
+
+	r.Lock()
+	defer r.Unlock()
 
 	if "" == ip {
 		delete(r.register, name)
@@ -35,6 +44,9 @@ func (r *Registry) Get(name string) (string, error) {
 	if "" == name {
 		return "", INVALID_NAME
 	}
+
+	r.Lock()
+	defer r.Unlock()
 
 	if _, exists := r.register[name]; false == exists {
 		return "", UNKNOWN_NAME

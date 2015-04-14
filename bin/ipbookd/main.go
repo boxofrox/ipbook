@@ -34,9 +34,7 @@ import (
 
 	"github.com/docopt/docopt-go"
 
-	"github.com/boxofrox/ipbook/lib/pool"
-	"github.com/boxofrox/ipbook/lib/protocol"
-	"github.com/boxofrox/ipbook/lib/registry"
+	"github.com/boxofrox/ipbook/lib/server"
 )
 
 var (
@@ -49,10 +47,6 @@ const (
 	Ok ProgError = iota
 	ArgParseError
 	ConfigParseError
-)
-
-const (
-	MAX_UDP_PACKET_SIZE = 65535
 )
 
 type ProgError int
@@ -96,10 +90,6 @@ Options:
 	os.Exit(int(Ok))
 }
 
-func createBuffer() []byte {
-	return make([]byte, MAX_UDP_PACKET_SIZE)
-}
-
 func createListener(port int) (*net.UDPConn, error) {
 	addr := net.UDPAddr{
 		IP:   net.ParseIP("0.0.0.0"),
@@ -115,115 +105,22 @@ func envOr(name string, def string) string {
 	return def
 }
 
-func listen(conn *net.UDPConn) {
-	// create a buffer pool
-	pool := pool.New(5, createBuffer)
-	registry := registry.New()
-
-	for {
-		buffer := pool.GetFreeBuffer()
-		n, addr, err := conn.ReadFromUDP(buffer)
-
-		if err != nil {
-			log.Printf("Error: reading udp packet from %s. %s", addr.String(), err)
-
-			if nil != addr {
-				protocol.SendErrorResponse(conn, addr, protocol.BAD_REQUEST, "unable to read request")
-			}
-
-			continue
-		}
-
-		go func(conn *net.UDPConn, addr *net.UDPAddr, n int, buffer []byte) {
-			// handle request
-
-			defer pool.Recycle(buffer)
-
-			var err error
-
-			object, err := protocol.Decode(buffer[0:n])
-			if nil != err {
-				log.Printf("Error: unable to decode request. %s", err)
-				protocol.SendErrorResponse(conn, addr, protocol.BAD_REQUEST, "unable to decode request")
-				return
-			}
-
-			switch object.GetType() {
-			case protocol.TYPE_GET_IP_REQUEST:
-				request := object.(*protocol.GetIpRequest)
-
-				if false == registry.Contains(request.Name) {
-					log.Printf("Host (%s): requested name (%s) not found in registry.",
-						addr.String(), request.Name)
-					protocol.SendErrorResponse(conn, addr, protocol.NAME_NOT_FOUND,
-						"name not found in registry")
-					return
-				}
-
-				ip, _ := registry.Get(request.Name)
-				_, err = protocol.SendGetIpResponse(conn, addr, request.Name, ip)
-				if nil != err {
-					log.Printf("Error: unable to send get-ip response to Host (%s). %s", addr.String(), err)
-				} else {
-					log.Printf("Host (%s): requested IP of (%s).", addr.String(), request.Name)
-				}
-
-			case protocol.TYPE_SET_IP_REQUEST:
-				request := object.(*protocol.SetIpRequest)
-
-				if registry.Contains(request.Name) {
-					log.Printf("Host (%s): changed IP of (%s) to (%s)", addr.String(), request.Name, request.Ip)
-				} else {
-					log.Printf("Host (%s): set IP of (%s) to (%s)", addr.String(), request.Name, request.Ip)
-				}
-
-				err = registry.Put(request.Name, request.Ip)
-				if nil != err {
-					log.Printf("Host (%s): unable to change IP of (%s) to (%s). %s",
-						addr.String(), request.Name, request.Ip, err)
-
-					_, err := protocol.SendErrorResponse(conn, addr, protocol.INVALID_NAME, err.Error())
-					if nil != err {
-						log.Printf("Error: failed to send error response to Host (%s). %s",
-							addr.String(), err)
-					}
-
-					return
-				}
-
-				_, err = protocol.SendSetIpResponse(conn, addr, "ok", "")
-
-				if nil != err {
-					log.Printf("Error: failed to send set-ip response to Host (%s). %s",
-						addr.String(), err)
-				}
-			}
-
-		}(conn, addr, n, buffer)
+func run(port int) {
+	server, err := server.New(port)
+	if nil != err {
+		log.Printf("Error: %s", err)
+		return
 	}
-}
 
-func run(port int) error {
-	var (
-		err  error
-		conn *net.UDPConn
-		sigs chan os.Signal
-	)
+	go server.Listen()
 
-	if conn, err = createListener(port); err != nil {
-		return err
-	}
-	defer conn.Close()
-
-	go listen(conn)
-
-	sigs = make(chan os.Signal, 1)
-
+	// terminate gracefully.  ie let server finish responding to requests.
+	sigs := make(chan os.Signal, 1)
 	signal.Notify(sigs, syscall.SIGINT, syscall.SIGTERM)
 
 	<-sigs
 
-	return nil
+	server.Stop()
 }
 
 func version() string {

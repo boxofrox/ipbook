@@ -3,6 +3,8 @@ package protocol
 import (
 	"errors"
 	"net"
+
+	boxnet "github.com/boxofrox/ipbook/lib/net"
 )
 
 const (
@@ -33,40 +35,41 @@ func ReadSetIpResponse(buffer []byte) (*SetIpResponse, error) {
 	return msg.(*SetIpResponse), nil
 }
 
-func SendErrorResponse(conn *net.UDPConn, addr *net.UDPAddr, code int, reason string) (int, error) {
+func SendErrorResponse(conn *boxnet.Conn, addr *net.UDPAddr, code int, reason string) error {
 	return SendMessage(conn, addr, &ErrorResponse{code, reason})
 }
 
-func SendGetIpRequest(conn *net.UDPConn, addr *net.UDPAddr, name string) (int, error) {
+func SendGetIpRequest(conn *boxnet.Conn, addr *net.UDPAddr, name string) error {
 	return SendMessage(conn, addr, &GetIpRequest{name})
 }
 
-func SendGetIpResponse(conn *net.UDPConn, addr *net.UDPAddr, name, ip string) (int, error) {
+func SendGetIpResponse(conn *boxnet.Conn, addr *net.UDPAddr, name, ip string) error {
 	return SendMessage(conn, addr, &GetIpResponse{name, ip})
 }
 
-func SendMessage(conn *net.UDPConn, addr *net.UDPAddr, msg messager) (int, error) {
+func SendMessage(conn *boxnet.Conn, addr *net.UDPAddr, msg Messager) error {
 	if nil == conn {
-		return 0, errors.New("socket is nil")
+		return errors.New("socket is nil")
 	}
 
 	if nil == addr {
-		return 0, errors.New("address is nil")
+		return errors.New("address is nil")
 	}
 
 	payload, err := encode(msg)
 
 	if nil != err {
-		return 0, err
+		return err
 	}
 
-	return conn.WriteToUDP(payload, addr)
+	_, err = conn.WriteToUDP(payload, addr)
+	return err
 }
 
-func SendSetIpRequest(conn *net.UDPConn, addr *net.UDPAddr, name, ip string) (int, error) {
+func SendSetIpRequest(conn *boxnet.Conn, addr *net.UDPAddr, name, ip string) error {
 	return SendMessage(conn, addr, &SetIpRequest{name, ip})
 }
 
-func SendSetIpResponse(conn *net.UDPConn, addr *net.UDPAddr, status Status, msg string) (int, error) {
+func SendSetIpResponse(conn *boxnet.Conn, addr *net.UDPAddr, status Status, msg string) error {
 	return SendMessage(conn, addr, &SetIpResponse{status, msg})
 }

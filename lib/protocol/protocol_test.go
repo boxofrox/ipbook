@@ -114,7 +114,7 @@ func Test_decode_WithSetIpResponseJsonMessage_SetIpResponse(t *testing.T) {
 
 func Test_encode_WithValidMessage_NoErrors(t *testing.T) {
 	tests := []struct {
-		input    messager
+		input    Messager
 		expected error
 	}{
 		{&GetIpRequest{"home"}, nil},

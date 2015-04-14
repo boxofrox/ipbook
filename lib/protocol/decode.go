@@ -5,7 +5,7 @@ import (
 	"fmt"
 )
 
-func Decode(data []byte) (messager, error) {
+func Decode(data []byte) (Messager, error) {
 	var msg Message
 
 	if err := json.Unmarshal(data, &msg); nil != err {
@@ -32,7 +32,7 @@ func Decode(data []byte) (messager, error) {
 	return nil, &DecodingError{UNKNOWN_MESSAGE, msg.Data, nil}
 }
 
-func unmarshal(data []byte, v messager) (messager, error) {
+func unmarshal(data []byte, v Messager) (Messager, error) {
 	if err := json.Unmarshal(data, &v); nil != err {
 		return nil, &DecodingError{DECODING_FAILED, data, err}
 	}

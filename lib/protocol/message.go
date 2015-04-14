@@ -4,7 +4,7 @@ import (
 	"encoding/json"
 )
 
-type messager interface {
+type Messager interface {
 	GetType() int
 }
 
