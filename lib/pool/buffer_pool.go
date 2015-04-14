@@ -25,7 +25,7 @@ func (p *BufferPool) GetFreeBuffer() []byte {
 }
 
 func (p *BufferPool) Recycle(buffer []byte) {
-	if cap(p.pool) < len(p.pool) {
+	if len(p.pool) < cap(p.pool) {
 		p.pool <- buffer
 	}
 }
