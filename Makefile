@@ -23,7 +23,7 @@ build:
 	go build $(BIN_LDFLAGS) $(BINS)
 
 test:
-	go test ${LIB_LDFLAGS} $(LIBS)
+	go test $(VERBOSE) ${LIB_LDFLAGS} $(LIBS)
 
 ipbookd:
 	go run $(BIN_LDFLAGS) bin/ipbookd/main.go
