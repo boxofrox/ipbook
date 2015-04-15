@@ -3,8 +3,6 @@ package protocol
 import (
 	"errors"
 	"net"
-
-	boxnet "github.com/boxofrox/ipbook/lib/net"
 )
 
 const (
@@ -35,19 +33,19 @@ func ReadSetIpResponse(buffer []byte) (*SetIpResponse, error) {
 	return msg.(*SetIpResponse), nil
 }
 
-func SendErrorResponse(conn *boxnet.Conn, addr *net.UDPAddr, code int, reason string) error {
+func SendErrorResponse(conn net.PacketConn, addr net.Addr, code int, reason string) error {
 	return SendMessage(conn, addr, &ErrorResponse{code, reason})
 }
 
-func SendGetIpRequest(conn *boxnet.Conn, addr *net.UDPAddr, name string) error {
+func SendGetIpRequest(conn net.PacketConn, addr net.Addr, name string) error {
 	return SendMessage(conn, addr, &GetIpRequest{name})
 }
 
-func SendGetIpResponse(conn *boxnet.Conn, addr *net.UDPAddr, name, ip string) error {
+func SendGetIpResponse(conn net.PacketConn, addr net.Addr, name, ip string) error {
 	return SendMessage(conn, addr, &GetIpResponse{name, ip})
 }
 
-func SendMessage(conn *boxnet.Conn, addr *net.UDPAddr, msg Messager) error {
+func SendMessage(conn net.PacketConn, addr net.Addr, msg Messager) error {
 	if nil == conn {
 		return errors.New("socket is nil")
 	}
@@ -62,14 +60,14 @@ func SendMessage(conn *boxnet.Conn, addr *net.UDPAddr, msg Messager) error {
 		return err
 	}
 
-	_, err = conn.WriteToUDP(payload, addr)
+	_, err = conn.WriteTo(payload, addr)
 	return err
 }
 
-func SendSetIpRequest(conn *boxnet.Conn, addr *net.UDPAddr, name, ip string) error {
+func SendSetIpRequest(conn net.PacketConn, addr net.Addr, name, ip string) error {
 	return SendMessage(conn, addr, &SetIpRequest{name, ip})
 }
 
-func SendSetIpResponse(conn *boxnet.Conn, addr *net.UDPAddr, status Status, msg string) error {
+func SendSetIpResponse(conn net.PacketConn, addr net.Addr, status Status, msg string) error {
 	return SendMessage(conn, addr, &SetIpResponse{status, msg})
 }
