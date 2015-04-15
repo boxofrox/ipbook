@@ -6,14 +6,12 @@ import (
 	"sync"
 
 	boxnet "github.com/boxofrox/ipbook/lib/net"
-	"github.com/boxofrox/ipbook/lib/pool"
 	"github.com/boxofrox/ipbook/lib/protocol"
 	"github.com/boxofrox/ipbook/lib/registry"
 )
 
 type Server struct {
 	conn     boxnet.Conn
-	pool     *pool.BufferPool
 	registry *registry.Registry
 	once     *sync.Once
 	done     bool
@@ -32,36 +30,11 @@ func New(port int) (*Server, error) {
 
 	s := Server{
 		conn:     boxnet.Conn{UDPConn: *c},
-		pool:     pool.New(5, createBuffer),
 		registry: registry.New(),
 		once:     &sync.Once{},
 	}
 
 	return &s, nil
-}
-
-func (s *Server) asyncHandleRequest(addr *net.UDPAddr, n int, buffer []byte) {
-	var err error
-
-	s.conn.Lend()
-	defer s.conn.Release()
-
-	defer s.pool.Recycle(buffer)
-
-	object, err := protocol.Decode(buffer[0:n])
-	if nil != err {
-		log.Printf("Error: unable to decode request. %s", err)
-		protocol.SendErrorResponse(&s.conn, addr, protocol.BAD_REQUEST, "unable to decode request")
-		return
-	}
-
-	handler, exists := handlers[object.GetType()]
-	if !exists {
-		log.Printf("Error: unknown request from Host (%s).\n  %s", addr.String(), buffer[0:n])
-		return
-	}
-
-	handler(s, addr, object)
 }
 
 func (s *Server) Listen() {
@@ -70,26 +43,52 @@ func (s *Server) Listen() {
 	s.once.Do(func() { s.listen() })
 }
 
+func (s *Server) Stop() {
+	s.done = true
+	s.conn.Close()
+}
+
+func (s *Server) asyncHandleRequest(pkt *protocol.Packet) {
+	var err error
+
+	s.conn.Lend()
+	defer s.conn.Release()
+
+	message, err := pkt.ReadMessage()
+	if nil != err {
+		log.Printf("Error: unable to decode request. %s", err)
+		s.sendErrorResponse(pkt.Raddr, protocol.BAD_REQUEST, "unable to decode request")
+		return
+	}
+
+	handler, exists := handlers[message.Type]
+	if !exists {
+		log.Printf("Error: unknown request from Host (%s).\n  %s", pkt.Raddr.String(), pkt.Data())
+		return
+	}
+
+	handler(s, pkt.Raddr, message)
+}
+
 func (s *Server) listen() {
 	s.done = false
 
 	defer s.conn.Close()
 
 	for !s.done {
-		buffer := s.pool.GetFreeBuffer()
-		n, addr, err := s.conn.ReadFromUDP(buffer)
+		pkt, err := protocol.ReadPacket(&s.conn)
 
 		if err != nil {
-			log.Printf("Error: reading udp packet from %s. %s", addr.String(), err)
+			log.Printf("Error: reading udp packet. %s", err)
 
-			if nil != addr {
-				protocol.SendErrorResponse(&s.conn, addr, protocol.BAD_REQUEST, "unable to read request")
+			if nil != pkt {
+				s.sendErrorResponse(pkt.Raddr, protocol.BAD_REQUEST, "unable to read request")
 			}
 
 			continue
 		}
 
-		go s.asyncHandleRequest(addr, n, buffer)
+		go s.asyncHandleRequest(pkt)
 	}
 }
 
@@ -97,70 +96,77 @@ func (s *Server) reset() {
 	s.once = &sync.Once{}
 }
 
-func (s *Server) Stop() {
-	s.done = true
-	s.conn.Close()
+func (s *Server) sendErrorResponse(addr net.Addr, code int, reason string) bool {
+	if err := protocol.SendErrorResponse(&s.conn, addr, code, reason); nil != err {
+		log.Printf("Error: unabled to send error response to %s. %s", addr.String(), err.Error())
+		return false
+	}
+	return true
 }
 
-const (
-	MAX_UDP_PACKET_SIZE = 65535
-)
-
-func createBuffer() []byte {
-	return make([]byte, MAX_UDP_PACKET_SIZE)
+func (s *Server) sendGetIpResponse(addr net.Addr, name, ip string) bool {
+	if err := protocol.SendGetIpResponse(&s.conn, addr, name, ip); nil != err {
+		log.Printf("Error: unable to send get-ip response to Host (%s). %s", addr.String(), err)
+		return false
+	}
+	return true
 }
 
-type RequestHandler func(s *Server, addr *net.UDPAddr, msg protocol.Messager)
+type RequestHandler func(s *Server, addr net.Addr, msg *protocol.Message)
 
 var handlers = map[int]RequestHandler{
 	protocol.TYPE_GET_IP_REQUEST: handleGetIpRequest,
 	protocol.TYPE_SET_IP_REQUEST: handleSetIpRequest,
 }
 
-func handleGetIpRequest(s *Server, addr *net.UDPAddr, msg protocol.Messager) {
+func handleGetIpRequest(s *Server, addr net.Addr, m *protocol.Message) {
 	var err error
 
-	request := msg.(*protocol.GetIpRequest)
+	r := &protocol.GetIpRequest{}
 
-	if false == s.registry.Contains(request.Name) {
-
-		log.Printf("Host (%s): requested name (%s) not found in registry.", addr.String(), request.Name)
-		if err = protocol.SendErrorResponse(&s.conn, addr, protocol.NAME_NOT_FOUND, "name not found in registry"); nil != err {
-			log.Printf("Error: failed to send error response to Host (%s). %s", addr.String(), err)
-		}
+	if err = r.ReadFrom(m); nil != err {
+		log.Printf("error: from host (%s): %s", addr.String(), err)
+		s.sendErrorResponse(addr, protocol.BAD_REQUEST, err.Error())
 		return
 	}
 
-	ip, _ := s.registry.Get(request.Name)
+	if false == s.registry.Contains(r.Name) {
 
-	if err = protocol.SendGetIpResponse(&s.conn, addr, request.Name, ip); nil != err {
-		log.Printf("Error: unable to send get-ip response to Host (%s). %s", addr.String(), err)
+		log.Printf("Host (%s): requested name (%s) not found in registry.", addr.String(), r.Name)
+		s.sendErrorResponse(addr, protocol.NAME_NOT_FOUND, "name not found in registry")
 		return
 	}
 
-	log.Printf("Host (%s): requested IP of (%s).", addr.String(), request.Name)
+	ip, _ := s.registry.Get(r.Name)
+
+	if s.sendGetIpResponse(addr, r.Name, ip) {
+		log.Printf("Host (%s): requested IP of (%s).", addr.String(), r.Name)
+	}
 }
 
-func handleSetIpRequest(s *Server, addr *net.UDPAddr, msg protocol.Messager) {
+func handleSetIpRequest(s *Server, addr net.Addr, m *protocol.Message) {
 	var err error
 
-	request := msg.(*protocol.SetIpRequest)
-	preexisting := s.registry.Contains(request.Name)
+	r := &protocol.SetIpRequest{}
 
-	if err = s.registry.Put(request.Name, request.Ip); nil != err {
-		log.Printf("Host (%s): unable to change IP of (%s) to (%s). %s", addr.String(), request.Name, request.Ip, err)
+	if err = r.ReadFrom(m); nil != err {
+		log.Printf("error: from host (%s): %s", addr.String(), err)
+		s.sendErrorResponse(addr, protocol.BAD_REQUEST, err.Error())
+		return
+	}
 
-		if err = protocol.SendErrorResponse(&s.conn, addr, protocol.INVALID_NAME, err.Error()); nil != err {
-			log.Printf("Error: failed to send error response to Host (%s). %s", addr.String(), err)
-		}
+	preexisting := s.registry.Contains(r.Name)
 
+	if err = s.registry.Put(r.Name, r.Ip); nil != err {
+		log.Printf("Host (%s): unable to change IP of (%s) to (%s). %s", addr.String(), r.Name, r.Ip, err)
+		s.sendErrorResponse(addr, protocol.INVALID_NAME, err.Error())
 		return
 	}
 
 	if preexisting {
-		log.Printf("Host (%s): changed IP of (%s) to (%s)", addr.String(), request.Name, request.Ip)
+		log.Printf("Host (%s): changed IP of (%s) to (%s)", addr.String(), r.Name, r.Ip)
 	} else {
-		log.Printf("Host (%s): initialized IP of (%s) to (%s)", addr.String(), request.Name, request.Ip)
+		log.Printf("Host (%s): initialized IP of (%s) to (%s)", addr.String(), r.Name, r.Ip)
 	}
 
 	if err = protocol.SendSetIpResponse(&s.conn, addr, "ok", ""); nil != err {

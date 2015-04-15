@@ -4,8 +4,18 @@ import (
 	"encoding/json"
 )
 
-func encode(message Messager) ([]byte, error) {
+func encode(message interface{}) ([]byte, error) {
 	return json.Marshal(message)
+}
+
+func encodeMessage (t Typeable) ([]byte, error) {
+    data, err := encode(t)
+
+    if nil != err {
+        return nil, err
+    }
+
+    return encode(&Message{t.GetType(), data})
 }
 
 type EncodingError int

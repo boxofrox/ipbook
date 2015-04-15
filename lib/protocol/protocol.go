@@ -3,6 +3,9 @@ package protocol
 import (
 	"errors"
 	"net"
+
+	"github.com/boxofrox/ipbook/lib/buffer"
+	"github.com/boxofrox/ipbook/lib/pool"
 )
 
 const (
@@ -11,26 +14,14 @@ const (
 	TYPE_GET_IP_RESPONSE
 	TYPE_SET_IP_REQUEST
 	TYPE_SET_IP_RESPONSE
+    TYPE_LAST               // not a valid message type
 )
 
-func ReadGetIpResponse(buffer []byte) (*GetIpResponse, error) {
-	msg, err := Decode(buffer)
+// global buffer pool for protocol library
+var bufferPool = pool.New(5, buffer.CreateUdpBuffer)
 
-	if nil != err {
-		return nil, err
-	}
-
-	return msg.(*GetIpResponse), nil
-}
-
-func ReadSetIpResponse(buffer []byte) (*SetIpResponse, error) {
-	msg, err := Decode(buffer)
-
-	if nil != err {
-		return nil, err
-	}
-
-	return msg.(*SetIpResponse), nil
+func IsValidMessage (msgType int) bool {
+    return 0 <= msgType && msgType < TYPE_LAST
 }
 
 func SendErrorResponse(conn net.PacketConn, addr net.Addr, code int, reason string) error {
@@ -45,7 +36,7 @@ func SendGetIpResponse(conn net.PacketConn, addr net.Addr, name, ip string) erro
 	return SendMessage(conn, addr, &GetIpResponse{name, ip})
 }
 
-func SendMessage(conn net.PacketConn, addr net.Addr, msg Messager) error {
+func SendMessage(conn net.PacketConn, addr net.Addr, msg interface{}) error {
 	if nil == conn {
 		return errors.New("socket is nil")
 	}

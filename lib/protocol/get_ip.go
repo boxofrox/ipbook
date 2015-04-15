@@ -1,29 +1,19 @@
 package protocol
 
-import (
-	"encoding/json"
-)
-
 type GetIpRequest struct {
 	Name string `json:"name"`
 }
 
-func (req *GetIpRequest) GetType() int {
+func (r *GetIpRequest) GetType() int {
 	return TYPE_GET_IP_REQUEST
 }
 
-func (req *GetIpRequest) MarshalJSON() ([]byte, error) {
-	data, err := json.Marshal(*req)
-	if nil != err {
-		return nil, err
-	}
+func (r *GetIpRequest) EncodeMessage() ([]byte, error) {
+	return encodeMessage(r)
+}
 
-	msg := Message{
-		Type: TYPE_GET_IP_REQUEST,
-		Data: json.RawMessage(data),
-	}
-
-	return json.Marshal(&msg)
+func (r *GetIpRequest) ReadFrom(m *Message) error {
+	return decode(m.Data, r)
 }
 
 type GetIpResponse struct {
@@ -31,19 +21,14 @@ type GetIpResponse struct {
 	Ip   string `json:"ip"`
 }
 
-func (resp *GetIpResponse) GetType() int {
+func (r *GetIpResponse) GetType() int {
 	return TYPE_GET_IP_RESPONSE
 }
 
-func (resp *GetIpResponse) MarshalJSON() ([]byte, error) {
-	data, err := json.Marshal(*resp)
-	if nil != err {
-		return nil, err
-	}
+func (r *GetIpResponse) EncodeMessage() ([]byte, error) {
+	return encodeMessage(r)
+}
 
-	msg := Message{
-		Type: TYPE_GET_IP_RESPONSE,
-		Data: data,
-	}
-	return json.Marshal(&msg)
+func (r *GetIpResponse) ReadFrom(m *Message) error {
+	return decode(m.Data, r)
 }

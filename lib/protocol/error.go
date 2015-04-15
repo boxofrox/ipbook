@@ -1,9 +1,5 @@
 package protocol
 
-import (
-	"encoding/json"
-)
-
 type ErrorResponse struct {
 	Code   int    `json:"code"`
 	Reason string `json:"reason"`
@@ -19,15 +15,6 @@ func (resp *ErrorResponse) GetType() int {
 	return TYPE_ERROR_RESPONSE
 }
 
-func (resp *ErrorResponse) MarshalJSON() ([]byte, error) {
-	data, err := json.Marshal(*resp)
-	if nil != err {
-		return nil, err
-	}
-
-	msg := Message{
-		Type: TYPE_ERROR_RESPONSE,
-		Data: data,
-	}
-	return json.Marshal(&msg)
+func (r *ErrorResponse) ReadFrom(m *Message) error {
+    return decode(m.Data, r)
 }

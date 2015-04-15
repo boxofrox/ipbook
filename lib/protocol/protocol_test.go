@@ -1,27 +1,52 @@
 package protocol
 
 import (
+	"bytes"
 	"testing"
 )
 
-func Test_decode_WithGetIpRequestJsonMessage_GetIpRequestObject(t *testing.T) {
-	expected := &GetIpRequest{"home"}
+func Test_decode_WithSimpleMessage_GetMessageObject(t *testing.T) {
+	expected := &Message{TYPE_ERROR_RESPONSE, []byte("{\"key\":\"value\"}")}
 
-	encoding, _ := encode(expected)
-	object, err := Decode(encoding)
+	encoding, err := encode(expected)
 
 	if nil != err {
-		t.Fatalf("error while decoding. %q.\nJSON: %s", err.Error(), string(encoding))
+		t.Fatalf("error while encoding message. %s", err)
 	}
 
-	if nil == object {
-		t.Fatalf("expecting valid Messager type, got nil")
+	actual := &Message{}
+
+	if err := decode(encoding, actual); nil != err {
+		t.Fatalf("error while decoding message. %s", err)
 	}
 
-	actual := object.(*GetIpRequest)
+	if actual.Type != expected.Type {
+		t.Errorf("expecting Type %v, got %v", expected.Type, actual.Type)
+	}
 
-	if actual.GetType() != expected.GetType() {
-		t.Errorf("expecting type %q, got %q", expected.GetType(), actual.GetType())
+	if !bytes.Equal(actual.Data, expected.Data) {
+		t.Errorf("expecting Data %v, got %v", expected.Data, actual.Data)
+	}
+}
+
+func Test_decode_WithGetIpRequestJsonMessage_GetIpRequestObject(t *testing.T) {
+	expected := &GetIpRequest{"home"}
+	message := &Message{}
+
+	encoding, _ := expected.EncodeMessage()
+
+	if err := decode(encoding, message); nil != err {
+		t.Fatalf("error while decoding. %s", err.Error())
+	}
+
+	if message.Type != expected.GetType() {
+		t.Fatalf("expecting type %q, got %q", expected.GetType(), message.Type)
+	}
+
+	actual := &GetIpRequest{}
+
+	if err := actual.ReadFrom(message); nil != err {
+		t.Fatalf("error while decoding. %s", err.Error())
 	}
 
 	if actual.Name != expected.Name {
@@ -31,22 +56,22 @@ func Test_decode_WithGetIpRequestJsonMessage_GetIpRequestObject(t *testing.T) {
 
 func Test_decode_WithGetIpResponseJsonMessage_GetIpResponseObject(t *testing.T) {
 	expected := &GetIpResponse{"home", "0.0.0.0"}
+	message := &Message{}
 
-	encoding, _ := encode(expected)
-	object, err := Decode(encoding)
+	encoding, _ := expected.EncodeMessage()
 
-	if nil != err {
-		t.Fatalf("error while decoding. %q.\nJSON: %s", err.Error(), string(encoding))
+	if err := decode(encoding, message); nil != err {
+		t.Fatalf("error while decoding. %s", err.Error())
 	}
 
-	if nil == object {
-		t.Fatalf("expecting valid Messager type, got nil")
+	if message.Type != expected.GetType() {
+		t.Fatalf("expecting type %q, got %q", expected.GetType(), message.Type)
 	}
 
-	actual := object.(*GetIpResponse)
+	actual := &GetIpResponse{}
 
-	if actual.GetType() != expected.GetType() {
-		t.Errorf("expecting type %q, got %q", expected.GetType(), actual.GetType())
+	if err := actual.ReadFrom(message); nil != err {
+		t.Fatalf("error while decoding. %s", err.Error())
 	}
 
 	if actual.Name != expected.Name {
@@ -54,28 +79,24 @@ func Test_decode_WithGetIpResponseJsonMessage_GetIpResponseObject(t *testing.T) 
 	}
 
 	if actual.Ip != expected.Ip {
-		t.Errorf("expecting IP %q, got %q", expected.Ip, actual.Ip)
+		t.Errorf("expecting Ip %q, got %q", expected.Ip, actual.Ip)
 	}
 }
 
 func Test_decode_WithSetIpRequestJsonMessage_SetIpRequestObject(t *testing.T) {
 	expected := &SetIpRequest{"home", "0.0.0.0"}
+	message := &Message{}
 
-	encoding, _ := encode(expected)
-	object, err := Decode(encoding)
+	encoding, _ := expected.EncodeMessage()
 
-	if nil != err {
-		t.Fatalf("error while decoding. %q.\nJSON: %s", err.Error(), string(encoding))
+	if err := decode(encoding, message); nil != err {
+		t.Fatalf("error while decoding. %s", err.Error())
 	}
 
-	if nil == object {
-		t.Fatalf("expecting valid Messager type, got nil")
-	}
+	actual := &SetIpRequest{}
 
-	actual := object.(*SetIpRequest)
-
-	if actual.GetType() != expected.GetType() {
-		t.Errorf("expecting type %q, got %q", expected.GetType(), actual.GetType())
+	if err := actual.ReadFrom(message); nil != err {
+		t.Fatalf("error while decoding. %s", err.Error())
 	}
 
 	if actual.Name != expected.Name {
@@ -88,23 +109,23 @@ func Test_decode_WithSetIpRequestJsonMessage_SetIpRequestObject(t *testing.T) {
 }
 
 func Test_decode_WithSetIpResponseJsonMessage_SetIpResponse(t *testing.T) {
-	expected := &SetIpResponse{STATUS_OK, ""}
+	expected := &SetIpResponse{STATUS_OK, "reason"}
+	message := &Message{}
 
-	encoding, _ := encode(expected)
-	object, err := Decode(encoding)
+	encoding, _ := expected.EncodeMessage()
 
-	if nil != err {
-		t.Fatalf("error while decoding. %q.\nJSON: %s", err.Error(), string(encoding))
+	if err := decode(encoding, message); nil != err {
+		t.Fatalf("error while decoding. %s", err.Error())
 	}
 
-	if nil == object {
-		t.Fatalf("expecting valid Messager type, got nil")
+	actual := &SetIpResponse{}
+
+	if err := actual.ReadFrom(message); nil != err {
+		t.Fatalf("error while decoding. %s", err.Error())
 	}
 
-	actual := object.(*SetIpResponse)
-
-	if actual.GetType() != expected.GetType() {
-		t.Errorf("expecting type %q, got %q", expected.GetType(), actual.GetType())
+	if actual.Reason != expected.Reason {
+		t.Errorf("expecting Reason %q, got %q", expected.Reason, actual.Reason)
 	}
 
 	if actual.Status != expected.Status {
@@ -114,7 +135,7 @@ func Test_decode_WithSetIpResponseJsonMessage_SetIpResponse(t *testing.T) {
 
 func Test_encode_WithValidMessage_NoErrors(t *testing.T) {
 	tests := []struct {
-		input    Messager
+		input    interface{}
 		expected error
 	}{
 		{&GetIpRequest{"home"}, nil},

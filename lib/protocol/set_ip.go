@@ -1,58 +1,44 @@
 package protocol
 
-import (
-	"encoding/json"
-)
-
 type SetIpRequest struct {
 	Name string `json:"name"`
 	Ip   string `json:"ip"`
 }
 
-func (req *SetIpRequest) GetType() int {
+func (r *SetIpRequest) GetType() int {
 	return TYPE_SET_IP_REQUEST
 }
 
-func (req *SetIpRequest) MarshalJSON() ([]byte, error) {
-	data, err := json.Marshal(*req)
-	if nil != err {
-		return nil, err
-	}
+func (r *SetIpRequest) EncodeMessage() ([]byte, error) {
+	return encodeMessage(r)
+}
 
-	msg := Message{
-		Type: TYPE_SET_IP_REQUEST,
-		Data: data,
-	}
-	return json.Marshal(&msg)
+func (r *SetIpRequest) ReadFrom(m *Message) error {
+	return decode(m.Data, r)
 }
 
 type SetIpResponse struct {
-	Status  Status `json:"status"`
-	Message string `json:"message"`
+	Status Status `json:"status"`
+	Reason string `json:"reason"`
 }
 
-func (resp *SetIpResponse) GetType() int {
+func (r *SetIpResponse) GetType() int {
 	return TYPE_SET_IP_RESPONSE
 }
 
-func (resp *SetIpResponse) MarshalJSON() ([]byte, error) {
-	data, err := json.Marshal(*resp)
-	if nil != err {
-		return nil, err
-	}
+func (r *SetIpResponse) EncodeMessage() ([]byte, error) {
+	return encodeMessage(r)
+}
 
-	msg := Message{
-		Type: TYPE_SET_IP_RESPONSE,
-		Data: data,
-	}
-	return json.Marshal(&msg)
+func (r *SetIpResponse) ReadFrom(m *Message) error {
+	return decode(m.Data, r)
 }
 
 type Status string
 
 const (
 	STATUS_OK    Status = "ok"
-	STATUS_ERROR                = "error"
+	STATUS_ERROR        = "error"
 )
 
 func (r Status) String() string {

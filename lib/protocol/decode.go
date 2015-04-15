@@ -5,39 +5,12 @@ import (
 	"fmt"
 )
 
-func Decode(data []byte) (Messager, error) {
-	var msg Message
-
-	if err := json.Unmarshal(data, &msg); nil != err {
-		return nil, err
+func decode (b []byte, v interface{}) error {
+	if err := json.Unmarshal(b, v); nil != err {
+		return &DecodingError{DECODING_FAILED, b, err}
 	}
 
-	switch msg.Type {
-	case TYPE_ERROR_RESPONSE:
-		return unmarshal(msg.Data, &ErrorResponse{})
-
-	case TYPE_GET_IP_REQUEST:
-		return unmarshal(msg.Data, &GetIpRequest{})
-
-	case TYPE_GET_IP_RESPONSE:
-		return unmarshal(msg.Data, &GetIpResponse{})
-
-	case TYPE_SET_IP_REQUEST:
-		return unmarshal(msg.Data, &SetIpRequest{})
-
-	case TYPE_SET_IP_RESPONSE:
-		return unmarshal(msg.Data, &SetIpResponse{})
-	}
-
-	return nil, &DecodingError{UNKNOWN_MESSAGE, msg.Data, nil}
-}
-
-func unmarshal(data []byte, v Messager) (Messager, error) {
-	if err := json.Unmarshal(data, &v); nil != err {
-		return nil, &DecodingError{DECODING_FAILED, data, err}
-	}
-
-	return v, nil
+	return nil
 }
 
 type DecodingError struct {
