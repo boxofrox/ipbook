@@ -25,4 +25,4 @@ test:
 	go test $(VERBOSE) ${LIB_LDFLAGS} $(LIBS)
 
 ipbookd:
-	go run $(BIN_LDFLAGS) bin/ipbookd/main.go
+	go run $(BIN_LDFLAGS) bin/ipbookd/main.go $(ARGS)
