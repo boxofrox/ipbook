@@ -20,7 +20,6 @@ install:
 
 build:
 	go build $(LIB_LDFLAGS) $(LIBS)
-	go build $(BIN_LDFLAGS) $(BINS)
 
 test:
 	go test $(VERBOSE) ${LIB_LDFLAGS} $(LIBS)
