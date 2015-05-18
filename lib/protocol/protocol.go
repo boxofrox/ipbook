@@ -1,7 +1,7 @@
 package protocol
 
 import (
-	"errors"
+	"fmt"
 	"net"
 
 	"github.com/boxofrox/ipbook/lib/buffer"
@@ -38,11 +38,11 @@ func SendGetIpResponse(conn net.PacketConn, addr net.Addr, name, ip string) erro
 
 func SendMessage(conn net.PacketConn, addr net.Addr, data Encodable) error {
 	if nil == conn {
-		return errors.New("socket is nil")
+		return fmt.Errorf("socket is nil")
 	}
 
 	if nil == addr {
-		return errors.New("address is nil")
+		return fmt.Errorf("address is nil")
 	}
 
 	payload, err := data.EncodeMessage()
