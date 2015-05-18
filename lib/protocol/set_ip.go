@@ -33,14 +33,3 @@ func (r *SetIpResponse) EncodeMessage() ([]byte, error) {
 func (r *SetIpResponse) ReadFrom(m *Message) error {
 	return decode(m.Data, r)
 }
-
-type Status string
-
-const (
-	STATUS_OK    Status = "ok"
-	STATUS_ERROR        = "error"
-)
-
-func (r Status) String() string {
-	return string(r)
-}
