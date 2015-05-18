@@ -8,6 +8,7 @@ IPBOOKD := $(PKG)/bin/ipbookd
 
 SHORT_LIBS := \
 	buffer \
+	client \
 	config \
 	net \
 	pool \
