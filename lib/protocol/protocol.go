@@ -14,14 +14,14 @@ const (
 	TYPE_GET_IP_RESPONSE
 	TYPE_SET_IP_REQUEST
 	TYPE_SET_IP_RESPONSE
-    TYPE_LAST               // not a valid message type
+	TYPE_LAST // not a valid message type
 )
 
 // global buffer pool for protocol library
 var bufferPool = pool.New(5, buffer.CreateUdpBuffer)
 
-func IsValidMessage (msgType int) bool {
-    return 0 <= msgType && msgType < TYPE_LAST
+func IsValidMessage(msgType int) bool {
+	return 0 <= msgType && msgType < TYPE_LAST
 }
 
 func SendErrorResponse(conn net.PacketConn, addr net.Addr, code int, reason string) error {
