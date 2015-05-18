@@ -55,7 +55,7 @@ func main() {
 		s         *server.Server
 	)
 
-	usage := `UDP Echo Server
+	usage := `IP BOOK SERVER
 
 Usage:
     ipbookd [-p PORT]
