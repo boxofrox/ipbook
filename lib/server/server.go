@@ -17,13 +17,18 @@ type Server struct {
 	done     bool
 }
 
-func New(port int) (*Server, error) {
-	addr := net.UDPAddr{
-		IP:   net.ParseIP("0.0.0.0"),
-		Port: port,
+func New(host string, port int) (*Server, error) {
+	var (
+		addr *net.UDPAddr
+		err  error
+		c    *net.UDPConn
+	)
+
+	if addr, err = net.ResolveUDPAddr("udp", fmt.Sprintf("%s:%d", host, port)); nil != err {
+		return nil, err
 	}
 
-	c, err := net.ListenUDP("udp", &addr)
+	c, err = net.ListenUDP("udp", addr)
 	if nil != err {
 		return nil, err
 	}
