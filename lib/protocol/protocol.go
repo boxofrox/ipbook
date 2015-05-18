@@ -14,6 +14,7 @@ const (
 	TYPE_GET_IP_RESPONSE
 	TYPE_SET_IP_REQUEST
 	TYPE_SET_IP_RESPONSE
+	TYPE_SET_PUBLIC_IP_REQUEST
 	TYPE_LAST // not a valid message type
 )
 
@@ -61,4 +62,8 @@ func SendSetIpRequest(conn net.PacketConn, addr net.Addr, name, ip string) error
 
 func SendSetIpResponse(conn net.PacketConn, addr net.Addr, status Status, msg string) error {
 	return SendMessage(conn, addr, &SetIpResponse{status, msg})
+}
+
+func SendSetPublicIpRequest(conn net.PacketConn, addr net.Addr, name string) error {
+	return SendMessage(conn, addr, &SetPublicIpRequest{name})
 }
