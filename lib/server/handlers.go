@@ -28,9 +28,9 @@ func handleGetIpRequest(s *Server, addr net.Addr, m *protocol.Message) {
 		return
 	}
 
-	ip, _ := s.registry.Get(r.Name)
+	stashedIp, _ := s.registry.Get(r.Name)
 
-	if s.sendGetIpResponse(addr, r.Name, ip) {
+	if s.sendGetIpResponse(addr, r.Name, stashedIp) {
 		log.Printf("Host (%s): requested IP of (%s).", ip, r.Name)
 	}
 }
