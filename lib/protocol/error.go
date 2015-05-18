@@ -1,5 +1,7 @@
 package protocol
 
+import "fmt"
+
 type ErrorResponse struct {
 	Code   int    `json:"code"`
 	Reason string `json:"reason"`
@@ -20,5 +22,9 @@ func (r *ErrorResponse) EncodeMessage() ([]byte, error) {
 }
 
 func (r *ErrorResponse) ReadFrom(m *Message) error {
-    return decode(m.Data, r)
+	return decode(m.Data, r)
+}
+
+func (r *ErrorResponse) Error() string {
+	return fmt.Sprintf("(%d) %s", r.Code, r.Reason)
 }
