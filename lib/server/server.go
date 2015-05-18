@@ -117,8 +117,6 @@ func (s *Server) sendGetIpResponse(addr net.Addr, name, ip string) bool {
 	return true
 }
 
-type RequestHandler func(s *Server, addr net.Addr, msg *protocol.Message)
-
 var handlers = map[int]RequestHandler{
 	protocol.TYPE_GET_IP_REQUEST: handleGetIpRequest,
 	protocol.TYPE_SET_IP_REQUEST: handleSetIpRequest,
