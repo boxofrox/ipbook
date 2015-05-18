@@ -87,13 +87,6 @@ Options:
 	os.Exit(int(Ok))
 }
 
-func envOr(name string, def string) string {
-	if val := os.Getenv(name); val != "" {
-		return val
-	}
-	return def
-}
-
 func version() string {
 	return fmt.Sprintf("%s: version %s, commit %s, build %s\n\n", os.Args[0], VERSION, GIT_COMMIT, BUILD_DATE)
 }
