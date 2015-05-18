@@ -5,6 +5,7 @@ GIT_COMMIT := $(shell git rev-parse HEAD)
 BUILD_DATE := $(shell date -u +%Y%m%d.%H%M%S.%3N)
 PKG := github.com/boxofrox/ipbook
 IPBOOKD := $(PKG)/bin/ipbookd
+IPBOOK := $(PKG)/bin/ipbook
 
 SHORT_LIBS := \
 	buffer \
@@ -17,7 +18,7 @@ SHORT_LIBS := \
 	server
 
 LIBS := $(addprefix $(PKG)/lib/,$(SHORT_LIBS))
-BINS := $(addprefix $(PKG)/bin/,ipbookd)
+BINS := $(addprefix $(PKG)/bin/,ipbook ipbookd)
 
 LIB_LDFLAGS =
 BIN_LDFLAGS = -ldflags "-X main.VERSION $(VERSION) -X main.GIT_COMMIT $(GIT_COMMIT) -X main.BUILD_DATE $(BUILD_DATE)"
@@ -35,3 +36,6 @@ test:
 
 ipbookd:
 	go run $(BIN_LDFLAGS) bin/ipbookd/main.go $(ARGS)
+
+ipbook:
+	go run $(BIN_LDFLAGS) bin/ipbook/main.go $(ARGS)
