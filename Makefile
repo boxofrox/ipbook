@@ -6,7 +6,16 @@ BUILD_DATE := $(shell date -u +%Y%m%d.%H%M%S.%3N)
 PKG := github.com/boxofrox/ipbook
 IPBOOKD := $(PKG)/bin/ipbookd
 
-LIBS := $(addprefix $(PKG)/lib/,pool protocol registry)
+SHORT_LIBS := \
+	buffer \
+	config \
+	net \
+	pool \
+	protocol \
+	registry \
+	server
+
+LIBS := $(addprefix $(PKG)/lib/,$(SHORT_LIBS))
 BINS := $(addprefix $(PKG)/bin/,ipbookd)
 
 LIB_LDFLAGS =
@@ -15,7 +24,6 @@ BIN_LDFLAGS = -ldflags "-X main.VERSION $(VERSION) -X main.GIT_COMMIT $(GIT_COMM
 all: install
 
 install:
-	go install $(LIB_LDFLAGS) $(LIBS)
 	go install $(BIN_LDFLAGS) $(BINS)
 
 build:
