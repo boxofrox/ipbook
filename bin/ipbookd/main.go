@@ -34,6 +34,7 @@ import (
 
 	"github.com/docopt/docopt-go"
 
+	"github.com/boxofrox/ipbook/bin/ipbookd/config"
 	"github.com/boxofrox/ipbook/lib/server"
 )
 
@@ -77,13 +78,10 @@ Options:
 		log.Fatal(err)
 	}
 
-	if arguments["--port"] != nil {
-		port, err = strconv.Atoi(arguments["--port"].(string))
-	} else {
-		port = 3000
-	}
+	conf := config.Load(arguments)
 
-	log.Printf("Listening on port %d\n", port)
+	log.Printf("Listening on port %d\n", conf.Port)
+	}
 
 	run(port)
 
