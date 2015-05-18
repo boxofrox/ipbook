@@ -67,3 +67,36 @@ func handleSetIpRequest(s *Server, addr net.Addr, m *protocol.Message) {
 		log.Printf("Error: failed to send set-ip response to Host (%s). %s", ip, err)
 	}
 }
+
+func handleSetPublicIpRequest(s *Server, addr net.Addr, m *protocol.Message) {
+	var (
+		err error
+		ip  = onlyIp(addr)
+	)
+
+	r := &protocol.SetPublicIpRequest{}
+
+	if err = r.ReadFrom(m); nil != err {
+		log.Printf("error: from host (%s): %s", addr.String(), err)
+		s.sendErrorResponse(addr, protocol.BAD_REQUEST, err.Error())
+		return
+	}
+
+	preexisting := s.registry.Contains(r.Name)
+
+	if err = s.registry.Put(r.Name, ip); nil != err {
+		log.Printf("Host (%s): unable to change IP of (%s) to (%s). %s", ip, r.Name, ip, err)
+		s.sendErrorResponse(addr, protocol.INVALID_NAME, err.Error())
+		return
+	}
+
+	if preexisting {
+		log.Printf("Host (%s): changed IP of (%s) to (%s)", ip, r.Name, ip)
+	} else {
+		log.Printf("Host (%s): initialized IP of (%s) to (%s)", ip, r.Name, ip)
+	}
+
+	if err = protocol.SendSetIpResponse(&s.conn, addr, "ok", ""); nil != err {
+		log.Printf("Error: failed to send set-ip response to Host (%s). %s", ip, err)
+	}
+}
