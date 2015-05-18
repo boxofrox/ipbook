@@ -8,6 +8,10 @@ type Typeable interface {
 	GetType() int
 }
 
+type Encodable interface {
+	EncodeMessage() ([]byte, error)
+}
+
 type Message struct {
 	Type int             `json:"type"`
 	Data json.RawMessage `json:"data"`

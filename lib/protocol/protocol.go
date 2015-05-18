@@ -36,7 +36,7 @@ func SendGetIpResponse(conn net.PacketConn, addr net.Addr, name, ip string) erro
 	return SendMessage(conn, addr, &GetIpResponse{name, ip})
 }
 
-func SendMessage(conn net.PacketConn, addr net.Addr, msg interface{}) error {
+func SendMessage(conn net.PacketConn, addr net.Addr, data Encodable) error {
 	if nil == conn {
 		return errors.New("socket is nil")
 	}
@@ -45,7 +45,7 @@ func SendMessage(conn net.PacketConn, addr net.Addr, msg interface{}) error {
 		return errors.New("address is nil")
 	}
 
-	payload, err := encode(msg)
+	payload, err := data.EncodeMessage()
 
 	if nil != err {
 		return err

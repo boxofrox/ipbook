@@ -15,6 +15,10 @@ func (resp *ErrorResponse) GetType() int {
 	return TYPE_ERROR_RESPONSE
 }
 
+func (r *ErrorResponse) EncodeMessage() ([]byte, error) {
+	return encodeMessage(r)
+}
+
 func (r *ErrorResponse) ReadFrom(m *Message) error {
     return decode(m.Data, r)
 }
