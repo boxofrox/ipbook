@@ -6,7 +6,7 @@ import (
 )
 
 type Conn struct {
-	net.UDPConn
+	net.PacketConn
 	wg sync.WaitGroup
 }
 
@@ -16,7 +16,7 @@ func (c *Conn) Lend() {
 
 func (c *Conn) Close() error {
 	c.wg.Wait()
-	return c.UDPConn.Close()
+	return c.PacketConn.Close()
 }
 
 func (c *Conn) Release() {

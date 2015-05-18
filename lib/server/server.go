@@ -21,7 +21,7 @@ func New(host string, port int) (*Server, error) {
 	var (
 		addr *net.UDPAddr
 		err  error
-		c    *net.UDPConn
+		c    net.PacketConn
 	)
 
 	if addr, err = net.ResolveUDPAddr("udp", fmt.Sprintf("%s:%d", host, port)); nil != err {
@@ -34,7 +34,7 @@ func New(host string, port int) (*Server, error) {
 	}
 
 	s := Server{
-		conn:     boxnet.Conn{UDPConn: *c},
+		conn:     boxnet.Conn{PacketConn: c},
 		registry: registry.New(),
 		once:     &sync.Once{},
 	}
