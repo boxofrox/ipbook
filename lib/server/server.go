@@ -1,9 +1,13 @@
 package server
 
 import (
+	"fmt"
 	"log"
 	"net"
+	"os"
+	"os/signal"
 	"sync"
+	"syscall"
 
 	boxnet "github.com/boxofrox/ipbook/lib/net"
 	"github.com/boxofrox/ipbook/lib/protocol"
@@ -42,10 +46,18 @@ func New(host string, port int) (*Server, error) {
 	return &s, nil
 }
 
-func (s *Server) Listen() {
+func (s *Server) Run() {
 	// only run the server once per instance
 	defer s.reset()
-	s.once.Do(func() { s.listen() })
+	s.once.Do(func() { go s.listen() })
+
+	// terminate gracefully.  ie let server finish responding to requests.
+	sigs := make(chan os.Signal, 1)
+	signal.Notify(sigs, syscall.SIGINT, syscall.SIGTERM)
+
+	<-sigs
+
+	s.Stop()
 }
 
 func (s *Server) Stop() {

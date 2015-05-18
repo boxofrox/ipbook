@@ -26,11 +26,7 @@ package main
 import (
 	"fmt"
 	"log"
-	"net"
 	"os"
-	"os/signal"
-	"strconv"
-	"syscall"
 
 	"github.com/docopt/docopt-go"
 
@@ -56,7 +52,7 @@ func main() {
 	var (
 		err       error
 		arguments map[string]interface{}
-		port      int
+		s         *server.Server
 	)
 
 	usage := `UDP Echo Server
@@ -81,19 +77,14 @@ Options:
 	conf := config.Load(arguments)
 
 	log.Printf("Listening on port %d\n", conf.Port)
+
+	if s, err = server.New(conf.Host, conf.Port); nil != err {
+		log.Fatalf("Error: %s", err)
 	}
 
-	run(port)
+	s.Run()
 
 	os.Exit(int(Ok))
-}
-
-func createListener(port int) (*net.UDPConn, error) {
-	addr := net.UDPAddr{
-		IP:   net.ParseIP("0.0.0.0"),
-		Port: port,
-	}
-	return net.ListenUDP("udp", &addr)
 }
 
 func envOr(name string, def string) string {
@@ -101,24 +92,6 @@ func envOr(name string, def string) string {
 		return val
 	}
 	return def
-}
-
-func run(port int) {
-	server, err := server.New(port)
-	if nil != err {
-		log.Printf("Error: %s", err)
-		return
-	}
-
-	go server.Listen()
-
-	// terminate gracefully.  ie let server finish responding to requests.
-	sigs := make(chan os.Signal, 1)
-	signal.Notify(sigs, syscall.SIGINT, syscall.SIGTERM)
-
-	<-sigs
-
-	server.Stop()
 }
 
 func version() string {
